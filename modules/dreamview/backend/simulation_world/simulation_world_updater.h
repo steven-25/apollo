@@ -20,15 +20,15 @@
 
 #pragma once
 
-#include <boost/thread/locks.hpp>
-#include <boost/thread/shared_mutex.hpp>
 #include <memory>
 #include <string>
 
+#include <boost/thread/locks.hpp>
+#include <boost/thread/shared_mutex.hpp>
 #include "absl/strings/str_cat.h"
+
 #include "cyber/common/log.h"
 #include "cyber/cyber.h"
-
 #include "modules/dreamview/backend/data_collection_monitor/data_collection_monitor.h"
 #include "modules/dreamview/backend/handlers/websocket_handler.h"
 #include "modules/dreamview/backend/map/map_service.h"
@@ -76,6 +76,8 @@ class SimulationWorldUpdater {
   // Time interval, in milliseconds, between pushing SimulationWorld to
   // frontend.
   static constexpr double kSimWorldTimeIntervalMs = 100;
+
+  double LastAdcTimestampSec() { return last_pushed_adc_timestamp_sec_; }
 
  private:
   /**
@@ -138,6 +140,8 @@ class SimulationWorldUpdater {
   boost::shared_mutex mutex_;
 
   std::unique_ptr<cyber::Timer> timer_;
+
+  volatile double last_pushed_adc_timestamp_sec_ = 0.0f;
 };
 
 }  // namespace dreamview

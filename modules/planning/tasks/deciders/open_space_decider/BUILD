@@ -1,3 +1,4 @@
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("//tools:cpplint.bzl", "cpplint")
 
 package(default_visibility = ["//visibility:public"])
@@ -32,7 +33,7 @@ cc_library(
     hdrs = ["open_space_fallback_decider.h"],
     copts = ["-DMODULE_NAME=\\\"planning\\\""],
     deps = [
-        "//modules/common/vehicle_state:vehicle_state_provider",
+        "//modules/planning/common:dependency_injector",
         "//modules/planning/common:planning_context",
         "//modules/planning/common:planning_gflags",
         "//modules/planning/tasks/deciders:decider_base",
@@ -55,6 +56,7 @@ cc_test(
     srcs = ["open_space_fallback_decider_test.cc"],
     deps = [
         ":open_space_fallback_decider",
+        "//modules/planning/common:dependency_injector",
         "@com_google_googletest//:gtest_main",
     ],
 )

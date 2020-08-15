@@ -21,12 +21,13 @@
 
 #include "modules/planning/planner/navi/navi_planner.h"
 
+#include <memory>
 #include <utility>
 
 #include "absl/strings/str_cat.h"
 #include "cyber/common/log.h"
+#include "cyber/time/clock.h"
 #include "modules/common/math/math_utils.h"
-#include "modules/common/time/time.h"
 #include "modules/common/util/point_factory.h"
 #include "modules/common/util/string_util.h"
 #include "modules/common/vehicle_state/vehicle_state_provider.h"
@@ -53,8 +54,8 @@ using apollo::common::SpeedPoint;
 using apollo::common::Status;
 using apollo::common::TrajectoryPoint;
 using apollo::common::math::Vec2d;
-using apollo::common::time::Clock;
 using apollo::common::util::PointFactory;
+using apollo::cyber::Clock;
 
 namespace {
 constexpr uint32_t KDestLanePriority = 0;
@@ -280,7 +281,8 @@ std::vector<SpeedPoint> NaviPlanner::GenerateInitSpeedProfile(
     const TrajectoryPoint& planning_init_point,
     const ReferenceLineInfo* reference_line_info) {
   std::vector<SpeedPoint> speed_profile;
-  const auto* last_frame = FrameHistory::Instance()->Latest();
+  const auto* last_frame =
+      scenario_manager_.injector()->frame_history()->Latest();
   if (!last_frame) {
     AWARN << "last frame is empty";
     return speed_profile;
@@ -353,7 +355,7 @@ std::vector<SpeedPoint> NaviPlanner::GenerateSpeedHotStart(
 
 void NaviPlanner::GenerateFallbackPathProfile(
     const ReferenceLineInfo* reference_line_info, PathData* path_data) {
-  auto adc_point = EgoInfo::Instance()->start_point();
+  auto adc_point = scenario_manager_.injector()->ego_info()->start_point();
   double adc_s = reference_line_info->AdcSlBoundary().end_s();
   const double max_s = 150.0;
   const double unit_s = 1.0;
@@ -379,7 +381,8 @@ void NaviPlanner::GenerateFallbackPathProfile(
 }
 
 void NaviPlanner::GenerateFallbackSpeedProfile(SpeedData* speed_data) {
-  const auto& start_point = EgoInfo::Instance()->start_point();
+  const auto& start_point =
+      scenario_manager_.injector()->ego_info()->start_point();
   *speed_data =
       GenerateStopProfileFromPolynomial(start_point.v(), start_point.a());
   if (speed_data->empty()) {
