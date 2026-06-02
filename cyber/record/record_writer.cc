@@ -20,11 +20,13 @@
 #include <iostream>
 
 #include "cyber/common/log.h"
+#include "cyber/common/time_conversion.h"
 
 namespace apollo {
 namespace cyber {
 namespace record {
 
+using apollo::cyber::common::UnixSecondsToString;
 using proto::Channel;
 using proto::SingleMessage;
 
@@ -39,9 +41,10 @@ bool RecordWriter::Open(const std::string& file) {
   file_index_ = 0;
   sstream_.str(std::string());
   sstream_.clear();
-  sstream_ << "." << std::setw(5) << std::setfill('0') << file_index_++;
+  sstream_ << "." << std::setw(5) << std::setfill('0') << file_index_++ << ".";
   if (header_.segment_interval() > 0 || header_.segment_raw_size() > 0) {
-    path_ = file_ + sstream_.str();
+    path_ = file_ + sstream_.str() +
+            UnixSecondsToString(time(nullptr), "%Y%m%d%H%M%S");
   } else {
     path_ = file_;
   }
@@ -75,8 +78,9 @@ bool RecordWriter::SplitOutfile() {
   }
   sstream_.str(std::string());
   sstream_.clear();
-  sstream_ << "." << std::setw(5) << std::setfill('0') << file_index_++;
-  path_ = file_ + sstream_.str();
+  sstream_ << "." << std::setw(5) << std::setfill('0') << file_index_++ << ".";
+  path_ = file_ + sstream_.str() +
+          UnixSecondsToString(time(nullptr), "%Y%m%d%H%M%S");
   segment_raw_size_ = 0;
   segment_begin_time_ = 0;
   if (!file_writer_->Open(path_)) {
@@ -177,17 +181,15 @@ bool RecordWriter::IsNewChannel(const std::string& channel_name) const {
 void RecordWriter::OnNewChannel(const std::string& channel_name,
                                 const std::string& message_type,
                                 const std::string& proto_desc) {
-  if (IsNewChannel(channel_name)) {
-    channel_message_number_map_[channel_name] = 0;
-    channel_message_type_map_[channel_name] = message_type;
-    channel_proto_desc_map_[channel_name] = proto_desc;
-  }
+  channel_message_number_map_[channel_name] = 0;
+  channel_message_type_map_[channel_name] = message_type;
+  channel_proto_desc_map_[channel_name] = proto_desc;
 }
 
 void RecordWriter::OnNewMessage(const std::string& channel_name) {
-  if (channel_message_number_map_.find(channel_name) !=
-      channel_message_number_map_.end()) {
-    channel_message_number_map_[channel_name]++;
+  auto iter = channel_message_number_map_.find(channel_name);
+  if (iter != channel_message_number_map_.end()) {
+    iter->second++;
   }
 }
 
@@ -205,7 +207,7 @@ const std::string& RecordWriter::GetMessageType(
   if (search != channel_message_type_map_.end()) {
     return search->second;
   }
-  return null_type_;
+  return kEmptyString;
 }
 
 const std::string& RecordWriter::GetProtoDesc(
@@ -214,12 +216,12 @@ const std::string& RecordWriter::GetProtoDesc(
   if (search != channel_proto_desc_map_.end()) {
     return search->second;
   }
-  return null_type_;
+  return kEmptyString;
 }
 
 std::set<std::string> RecordWriter::GetChannelList() const {
   std::set<std::string> channel_list;
-  for (auto& item : channel_message_number_map_) {
+  for (const auto& item : channel_message_number_map_) {
     channel_list.insert(item.first);
   }
   return channel_list;
